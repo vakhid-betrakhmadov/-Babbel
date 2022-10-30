@@ -18,7 +18,11 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     
     private func rootViewController() -> UIViewController {
         let wordGameAssembly = WordGameAssemblyImpl()
-        let (_, wordGameViewController) = wordGameAssembly.assemble()
+        let (wordGameInterface, wordGameViewController) = wordGameAssembly.assemble()
+        wordGameInterface.onFinish = {
+            UIApplication.shared.perform(#selector(NSXPCConnection.suspend))
+            exit(0)
+        }
         return wordGameViewController
     }
 }

@@ -1,2 +1,4 @@
 @MainActor
-protocol WordGameInterface {}
+protocol WordGameInterface: AnyObject {
+    var onFinish: (() -> ())? { get set }
+}

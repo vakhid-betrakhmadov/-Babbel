@@ -14,10 +14,35 @@ final class WordGamePresenter: WordGameInterface {
     
     private weak var view: (AnyObject & WordGameViewInterface)?
     private let interactor: WordGameInteractor
+    private let buttonAnimationDurationSeconds = 0.1
+    var onFinish: (() -> ())?
     
     private func setup() {
+        setupView()
+        setupInteractor()
+    }
+    
+    private func setupView() {
         view?.onViewDidLoad = { [weak self] in
             self?.updateView()
+        }
+    }
+    
+    private func setupInteractor() {
+        Task {
+            await interactor.subscribeToAttemptTimeoutEvent { [weak self] in
+                self?.updateView()
+            }
+            
+            await interactor.subscribeToGameEndEvent { [weak self] in
+                self?.finish()
+            }
+        }
+    }
+    
+    private func finish() {
+        Task {
+            onFinish?()
         }
     }
     
@@ -86,7 +111,7 @@ final class WordGamePresenter: WordGameInterface {
         
         return .init(
             backgroundColor: backgroundColor,
-            durationSeconds: 0.1
+            durationSeconds: buttonAnimationDurationSeconds
         )
     }
 }
