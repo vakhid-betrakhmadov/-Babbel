@@ -4,16 +4,19 @@ import UIKit
 final class WordGamePresenter: WordGameInterface {
     init(
         view: AnyObject & WordGameViewInterface,
-        interactor: WordGameInteractor)
+        interactor: WordGameInteractor,
+        router: WordGameRouter)
     {
         self.view = view
         self.interactor = interactor
+        self.router = router
         
         setup()
     }
     
     private weak var view: (AnyObject & WordGameViewInterface)?
     private let interactor: WordGameInteractor
+    private let router: WordGameRouter
     private let buttonAnimationDurationSeconds = 0.1
     var onFinish: (() -> ())?
     
@@ -24,7 +27,7 @@ final class WordGamePresenter: WordGameInterface {
     
     private func setupView() {
         view?.onViewDidLoad = { [weak self] in
-            self?.updateView()
+            self?.startGame()
         }
     }
     
@@ -34,9 +37,45 @@ final class WordGamePresenter: WordGameInterface {
                 self?.updateView()
             }
             
-            await interactor.subscribeToGameEndEvent { [weak self] in
-                self?.finish()
+            await interactor.subscribeToGameOverEvent { [weak self] gameResult in
+                self?.displayDialog(gameResult: gameResult)
             }
+        }
+    }
+    
+    private func startGame() {
+        Task {
+            await interactor.startGame()
+            updateView()
+        }
+    }
+    
+    private func displayDialog(gameResult: WordGameResult) {
+        Task {
+            _ = router.displayDialog(Dialog(
+                title: "GAME OVER",
+                message: """
+                    Correct attempts: \(gameResult.correctAttemptsCount)
+                    Wrong attempts: \(gameResult.wrongAttemptsCount)
+                """,
+                style: .alert,
+                actions: [
+                    .init(
+                        title: "Restart",
+                        style: .default,
+                        handler: { [weak self] _ in
+                            self?.startGame()
+                        }
+                    ),
+                    .init(
+                        title: "Quit",
+                        style: .destructive,
+                        handler: { [weak self] _ in
+                            self?.finish()
+                        }
+                    ),
+                ]
+            ))
         }
     }
     
@@ -95,7 +134,8 @@ final class WordGamePresenter: WordGameInterface {
                 }
             },
             wordTranslationText: wordPair.wordTranslation,
-            wordText: wordPair.word
+            wordText: wordPair.word,
+            wordTranslationAnimation: interactor.isGameOver ? nil : .init(durationSeconds: interactor.attemptDurationSeconds)
         )
     }
     

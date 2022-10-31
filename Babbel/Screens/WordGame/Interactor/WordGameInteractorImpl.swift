@@ -20,14 +20,22 @@ actor WordGameInteractorImpl: WordGameInteractor {
     private var wordPairAnswersIterator: AnyIterator<WordPairAnswer>?
     private var attemptTimeoutEventTimer: AnyCancellable?
     private var onAttemptTimeoutEvent: (() -> ())?
-    private var onGameEndEvent: (() -> ())?
+    private var onGameOverEvent: ((WordGameResult) -> ())?
     private let maxWrongAttempts = 3
     private let maxTotalAttempts = 15
     private let correctWordPairProbabilityIsOneIn = 4
     
     let attemptDurationSeconds: Double = 5
+    private(set) var isGameOver = true
     private(set) var correctAttemptsCount = 0
     private(set) var wrongAttemptsCount = 0
+    
+    func startGame() {
+        isGameOver = false
+        correctAttemptsCount = 0
+        wrongAttemptsCount = 0
+        restartAttemptTimeoutEventTimer()
+    }
     
     func nextWordPair() async throws -> WordPair {
         if let wordPairAnswersIterator {
@@ -41,7 +49,7 @@ actor WordGameInteractorImpl: WordGameInteractor {
         
         let wordPairs = try await wordPairsRrovider.wordPairs()
         
-        let wordPairAnswers = wordPairAnswersGenerator.generateWordPairAnswers(
+        let wordPairAnswers = wordPairAnswersGenerator.infiniteWordPairAnswers(
             wordPairs: wordPairs,
             correctWordPairProbabilityIsOneIn: correctWordPairProbabilityIsOneIn
         )
@@ -66,11 +74,10 @@ actor WordGameInteractorImpl: WordGameInteractor {
     
     func subscribeToAttemptTimeoutEvent(_ closure: @escaping () -> ()) {
         onAttemptTimeoutEvent = closure
-        restartAttemptTimeoutEventTimer()
     }
     
-    func subscribeToGameEndEvent(_ closure: @escaping () -> ()) {
-        onGameEndEvent = closure
+    func subscribeToGameOverEvent(_ closure: @escaping (WordGameResult) -> ()) {
+        onGameOverEvent = closure
     }
     
     private func restartAttemptTimeoutEventTimer() {
@@ -84,19 +91,37 @@ actor WordGameInteractorImpl: WordGameInteractor {
             }
     }
     
+    private func stopAttemptTimeoutEventTimer() {
+        attemptTimeoutEventTimer?.cancel()
+        attemptTimeoutEventTimer = nil
+    }
+    
     private func incrementCorrectAttemptsCount() {
         correctAttemptsCount += 1
-        checkGameEnd()
+        checkIfGameOver()
     }
     
     private func incrementWrongAttemptsCount() {
         wrongAttemptsCount += 1
-        checkGameEnd()
+        checkIfGameOver()
     }
     
-    private func checkGameEnd() {
-        if wrongAttemptsCount >= maxWrongAttempts || (wrongAttemptsCount + correctAttemptsCount) >= maxTotalAttempts {
-            onGameEndEvent?()
+    private func checkIfGameOver() {
+        let isGameOver = wrongAttemptsCount >= maxWrongAttempts
+            || (wrongAttemptsCount+correctAttemptsCount) >= maxTotalAttempts
+        
+        if isGameOver {
+            let gameResult = WordGameResult(
+                correctAttemptsCount: correctAttemptsCount,
+                wrongAttemptsCount: wrongAttemptsCount
+            )
+            stopGame()
+            onGameOverEvent?(gameResult)
         }
+    }
+    
+    private func stopGame() {
+        isGameOver = true
+        stopAttemptTimeoutEventTimer()
     }
 }

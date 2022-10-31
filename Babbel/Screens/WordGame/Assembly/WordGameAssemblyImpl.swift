@@ -10,9 +10,15 @@ final class WordGameAssemblyImpl: WordGameAssembly {
             wordPairAnswersGenerator: WordPairAnswersGeneratorImpl()
         )
         
+        let router = WordGameRouterImpl(
+            viewController: viewController,
+            dialogAssembly: DialogAssemblyImpl()
+        )
+        
         let presenter = WordGamePresenter(
             view: viewController,
-            interactor: interactor
+            interactor: interactor,
+            router: router
         )
         
         viewController.add(disposable: presenter)

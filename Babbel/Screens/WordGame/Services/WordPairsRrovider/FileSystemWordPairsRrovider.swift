@@ -5,11 +5,16 @@ actor FileSystemWordPairsRrovider: WordPairsRrovider {
         let errorDescription: String?
     }
     
-    init(wordlistFileInfo: WordlistFileInfo) {
+    init(
+        wordlistFileInfo: WordlistFileInfo,
+        fileManager: FileContentsProvider = FileManager.default
+    ) {
         self.wordlistFileInfo = wordlistFileInfo
+        self.fileManager = fileManager
     }
     
     private let wordlistFileInfo: WordlistFileInfo
+    private let fileManager: FileContentsProvider
     private var loadWordPairsFromFileTask: Task<[WordPair], Swift.Error>?
     
     func wordPairs() async throws -> [WordPair] {
@@ -28,7 +33,7 @@ actor FileSystemWordPairsRrovider: WordPairsRrovider {
     }
     
     private func loadWordPairsFromFile() throws -> [WordPair] {
-        guard let wordPairsData = FileManager.default.contents(atPath: wordlistFileInfo.filePath)
+        guard let wordPairsData = fileManager.contents(atPath: wordlistFileInfo.filePath)
         else { throw Error(errorDescription: "Failed to return contents of the file at \(wordlistFileInfo.filePath)") }
         
         let rawWordPairs = try JSONDecoder().decode(

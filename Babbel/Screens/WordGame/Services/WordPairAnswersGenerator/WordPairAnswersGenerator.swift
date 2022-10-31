@@ -1,5 +1,5 @@
 protocol WordPairAnswersGenerator {
-    func generateWordPairAnswers(
+    func infiniteWordPairAnswers(
         wordPairs: [WordPair],
         correctWordPairProbabilityIsOneIn: Int
     ) -> AnySequence<WordPairAnswer>

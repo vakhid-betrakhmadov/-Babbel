@@ -1,5 +1,5 @@
 final class WordPairAnswersGeneratorImpl: WordPairAnswersGenerator {
-    func generateWordPairAnswers(
+    func infiniteWordPairAnswers(
         wordPairs: [WordPair],
         correctWordPairProbabilityIsOneIn total: Int
     ) -> AnySequence<WordPairAnswer> {

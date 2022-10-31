@@ -20,6 +20,7 @@ final class WordGameView: UIView {
     private let wrongAnswerButton = ButtonView(style: .answer)
     private let wordsStackView = UIStackView()
     private let wordTranslationLabel = LabelView(style: .wordTranslation)
+    private let wordTranslationAnimationLabel = LabelView(style: .wordTranslation)
     private let wordLabel = LabelView(style: .word)
     private var additionalLayoutMargins: UIEdgeInsets {
         .init(
@@ -29,6 +30,7 @@ final class WordGameView: UIView {
             right: 0
         )
     }
+    private var wordTranslationAnimator: UIViewPropertyAnimator?
     
     override var layoutMargins: UIEdgeInsets {
         get { super.layoutMargins + additionalLayoutMargins }
@@ -57,25 +59,66 @@ final class WordGameView: UIView {
             LabelViewData(text: viewData.wordText)
         )
         
-        if let correctAnswerButtonAnimation = viewData.correctAnswerButtonAnimation {
-            animateButton(
-                correctAnswerButton,
-                buttonAnimation: correctAnswerButtonAnimation
-            )
-        }
+        animateButtonIfNeeded(
+            correctAnswerButton,
+            buttonAnimation: viewData.correctAnswerButtonAnimation
+        )
         
-        if let wrongAnswerButtonAnimation = viewData.wrongAnswerButtonAnimation {
-            animateButton(
-                wrongAnswerButton,
-                buttonAnimation: wrongAnswerButtonAnimation
-            )
-        }
+        animateButtonIfNeeded(
+            wrongAnswerButton,
+            buttonAnimation: viewData.wrongAnswerButtonAnimation
+        )
+        
+        animateWordTranslationIfNeeded(viewData: viewData)
     }
     
-    private func animateButton(
+    private func animateWordTranslationIfNeeded(viewData: WordGameViewData) {
+        wordTranslationAnimator?.stopAnimation(false)
+        wordTranslationAnimator?.finishAnimation(at: .end)
+        
+        guard let wordTranslationAnimation = viewData.wordTranslationAnimation
+        else { return }
+        
+        layoutIfNeeded()
+        
+        let wordTranslationAnimationLabelEndFrame = wordTranslationLabel.convert(
+            self.wordTranslationLabel.frame,
+            to: self
+        )
+        
+        let wordTranslationAnimationLabelStartFrame = CGRect(
+            x: wordTranslationAnimationLabelEndFrame.minX,
+            y: -wordTranslationAnimationLabelEndFrame.height,
+            width: wordTranslationAnimationLabelEndFrame.width,
+            height: wordTranslationAnimationLabelEndFrame.height
+        )
+        
+        wordTranslationAnimationLabel.setViewData(LabelViewData(text: viewData.wordTranslationText))
+        wordTranslationAnimationLabel.frame = wordTranslationAnimationLabelStartFrame
+        wordTranslationLabel.alpha = 0
+        
+        wordTranslationAnimator = UIViewPropertyAnimator.runningPropertyAnimator(
+            withDuration: wordTranslationAnimation.durationSeconds,
+            delay: 0,
+            options: [.curveEaseOut],
+            animations: { [weak self] in
+                guard let self else { return }
+                self.wordTranslationAnimationLabel.frame = wordTranslationAnimationLabelEndFrame
+            },
+            completion: { [weak self] _ in
+                guard let self else { return }
+                self.wordTranslationLabel.alpha = 1
+                self.wordTranslationAnimationLabel.frame = wordTranslationAnimationLabelStartFrame
+            }
+        )
+    }
+    
+    private func animateButtonIfNeeded(
         _ button: ButtonView,
-        buttonAnimation: WordGameViewData.ButtonAnimation)
+        buttonAnimation: WordGameViewData.ButtonAnimation?)
     {
+        guard let buttonAnimation else { return }
+        
         let oldButtonStyle = button.style
         button.setStyle(oldButtonStyle.with {
             $0.backgroundColor = buttonAnimation.backgroundColor
@@ -88,6 +131,9 @@ final class WordGameView: UIView {
     
     private func setup() {
         backgroundColor = .systemBackground
+        
+        addSubview(wordTranslationAnimationLabel)
+        wordTranslationAnimationLabel.backgroundColor = .clear
         
         attemptCountersStackView.axis = .vertical
         attemptCountersStackView.spacing = 4

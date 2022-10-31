@@ -11,9 +11,14 @@ struct WordGameViewData {
     let onWrongAnswerButtonTap: (() ->())?
     let wordTranslationText: String?
     let wordText: String?
+    let wordTranslationAnimation: WordTranslationAnimation?
     
     struct ButtonAnimation {
         let backgroundColor: UIColor
+        let durationSeconds: Double
+    }
+    
+    struct WordTranslationAnimation {
         let durationSeconds: Double
     }
 }
