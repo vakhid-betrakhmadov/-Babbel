@@ -1,5 +1,8 @@
 # +Babbel
-Code challenge (Position: iOS Engineer) - Word game.
+
+A take-home project - Word Game.
+
+![WordGame.gif](WordGame.gif)
 
 Each milestone is available as a separate release (see Releases).
 
